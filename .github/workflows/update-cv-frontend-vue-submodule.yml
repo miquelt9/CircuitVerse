@@ -1,0 +1,41 @@
+name: Update Submodule in CircuitVerse
+
+on:
+  push:
+    branches:
+      - main  # or whatever branch you want to trigger updates from
+
+jobs:
+  update-submodule:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout cv-frontend-vue repository
+        uses: actions/checkout@v3
+        with:
+          path: cv-frontend-vue
+          
+      - name: Get commit hash
+        id: get-commit-hash
+        run: echo "COMMIT_HASH=$(git rev-parse HEAD)" >> $GITHUB_ENV
+        working-directory: cv-frontend-vue
+        
+      - name: Checkout CircuitVerse repository
+        uses: actions/checkout@v3
+        with:
+          repository: miquelt9/CircuitVerse
+          token: ${{ secrets.SUBMODULE_UPDATE_TOKEN }}
+          path: circuitverse
+          
+      - name: Update submodule
+        run: |
+          cd circuitverse
+          git config user.name "GitHub Actions Bot"
+          git config user.email "actions@github.com"
+          git submodule update --init
+          cd cv-frontend-vue
+          git fetch origin
+          git checkout ${{ env.COMMIT_HASH }}
+          cd ..
+          git add cv-frontend-vue
+          git commit -m "Update cv-frontend-vue submodule to latest commit (${{ env.COMMIT_HASH }})"
+          git push
